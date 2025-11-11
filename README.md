@@ -1,72 +1,140 @@
-# Proyecto de Microservicios - Colabora App
+# Proyecto Microservicios# Proyecto de Microservicios - Colabora App
 
-Sistema de gestión de proyectos colaborativos entre artistas, con microservicios para notificaciones y emails.
 
-## Arquitectura
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Cliente (Navegador)                      │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
+Sistema de microservicios para gestión de proyectos colaborativos.Sistema de gestión de proyectos colaborativos entre artistas, con microservicios para notificaciones y emails.
+
+
+
+## 🏗️ Arquitectura## Arquitectura
+
+
+
+- **Backend**: Spring Boot (Puerto 8001)```
+
+- **Notifications Service**: Python FastAPI (Puerto 8002) ┌─────────────────────────────────────────────────────────────────┐
+
+- **Email Service**: Node.js Express (Puerto 8003)│                        Cliente (Navegador)                      │
+
+- **API Gateway**: HAProxy (Puerto 8080)└────────────────────────┬────────────────────────────────────────┘
+
+- **Messaging**: Apache Kafka                         │
+
+- **Database**: MySQL                         ▼
+
+- **Cache**: Redis┌─────────────────────────────────────────────────────────────────┐
+
 │              API Gateway (HAProxy) - Puerto 8080                 │
-└────────────────────────┬────────────────────────────────────────┘
+
+## 🚀 Inicio Rápido└────────────────────────┬────────────────────────────────────────┘
+
                          │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
+
+```bash         ┌───────────────┼───────────────┐
+
+# Iniciar todos los servicios         │               │               │
+
+docker-compose up -d         ▼               ▼               ▼
+
     ┌────────┐      ┌──────────┐    ┌────────┐
-    │Backend │      │Notif.    │    │Email   │
-    │(8001)  │      │Service   │    │Service │
+
+# Verificar estado    │Backend │      │Notif.    │    │Email   │
+
+docker-compose ps    │(8001)  │      │Service   │    │Service │
+
     │Spring  │      │(8002)    │    │(8003)  │
-    │Boot    │      │FastAPI   │    │FastAPI │
-    └────┬───┘      └────┬─────┘    └───┬────┘
-         │               │              │
+
+# Ver logs    │Boot    │      │FastAPI   │    │FastAPI │
+
+docker-compose logs -f    └────┬───┘      └────┬─────┘    └───┬────┘
+
+```         │               │              │
+
          └───────────────┼──────────────┘
-                         │
+
+## 📡 Endpoints                         │
+
                     ┌────▼────┐
-                    │  Kafka   │
-                    │Broker    │
-                    └────┬────┘
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
+
+### Email Service                    │  Kafka   │
+
+```                    │Broker    │
+
+POST   /api/v1/emails/send      # Enviar email                    └────┬────┘
+
+GET    /api/v1/emails/health    # Health check                         │
+
+GET    /api/v1/emails/logs      # Logs de emails         ┌───────────────┼───────────────┐
+
+GET    /api/v1/emails/stats     # Estadísticas         │               │               │
+
+```         ▼               ▼               ▼
+
     ┌────────┐      ┌──────────┐    ┌────────┐
-    │MySQL   │      │Redis     │    │Logs    │
-    │Base de │      │Cache     │    │Service │
-    │datos   │      │Sesiones  │    │        │
-    └────────┘      └──────────┘    └────────┘
+
+### Notifications Service      │MySQL   │      │Redis     │    │Logs    │
+
+```    │Base de │      │Cache     │    │Service │
+
+GET    /api/v1/notifications    # Obtener notificaciones    │datos   │      │Sesiones  │    │        │
+
+POST   /api/v1/notifications    # Crear notificación    └────────┘      └──────────┘    └────────┘
+
+GET    /api/v1/notifications/health  # Health check```
+
 ```
 
 ## 🚀 Servicios
 
+## 🐳 Servicios Docker
+
 ### Backend Principal (Spring Boot)
-- **Puerto**: 8001
-- **Funcionalidad**:
-  - Autenticación JWT
-  - Gestión de usuarios (Admin, Artistas)
-  - CRUD de proyectos
-  - Gestión de tareas (tipo Jira)
-  - Gestión de solicitudes de membresía
+
+- `zookeeper`: Coordinación para Kafka- **Puerto**: 8001
+
+- `kafka`: Message broker- **Funcionalidad**:
+
+- `redis`: Cache y sesiones  - Autenticación JWT
+
+- `mysql`: Base de datos principal  - Gestión de usuarios (Admin, Artistas)
+
+- `email-service`: Servicio de emails (Node.js)  - CRUD de proyectos
+
+- `notifications-service`: Servicio de notificaciones (Python)  - Gestión de tareas (tipo Jira)
+
+- `api-gateway`: Proxy reverso (HAProxy)  - Gestión de solicitudes de membresía
+
   - Publicación de eventos a Kafka
 
+## 🔧 Configuración
+
 ### Notifications Service (FastAPI)
-- **Puerto**: 8002
+
+Cada microservicio requiere variables de entorno específicas. Ver archivos `.env.example` en cada directorio de servicio.- **Puerto**: 8002
+
 - **Funcionalidad**:
-  - Almacenamiento de notificaciones
-  - Lectura/no lectura de notificaciones
-  - Consumo de eventos de Kafka
-  - WebSocket para notificaciones en tiempo real (opcional)
+
+### Email Service  - Almacenamiento de notificaciones
+
+```env  - Lectura/no lectura de notificaciones
+
+SMTP_USER=your-email@gmail.com  - Consumo de eventos de Kafka
+
+SMTP_PASS=your-app-password  - WebSocket para notificaciones en tiempo real (opcional)
+
+```
 
 ### Email Service (FastAPI)
-- **Puerto**: 8003
+
+## 📊 Monitoreo- **Puerto**: 8003
+
 - **Funcionalidad**:
-  - Envío de emails
-  - Plantillas de email
-  - Consumo de eventos de Kafka
+
+- **Health Checks**: Cada servicio expone `/health`  - Envío de emails
+
+- **HAProxy Stats**: `http://localhost:8080/stats`  - Plantillas de email
+
+- **Logs**: `docker-compose logs <service>`  - Consumo de eventos de Kafka
   - Registro de logs de envíos
 
 ## Características de la Aplicación
