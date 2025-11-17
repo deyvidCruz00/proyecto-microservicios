@@ -5,7 +5,17 @@ const config = {
   PORT: process.env.PORT || 8003,
   SERVICE_NAME: process.env.SERVICE_NAME || 'email-service-node',
   
-  // SMTP Configuration
+  // Email Provider Configuration
+  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || 'sendgrid', // 'sendgrid' or 'smtp'
+  
+  // SendGrid Configuration
+  SENDGRID: {
+    API_KEY: process.env.SENDGRID_API_KEY || '',
+    FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || 'noreply@example.com',
+    FROM_NAME: process.env.SENDGRID_FROM_NAME || process.env.SMTP_FROM_NAME || 'PartySTApp'
+  },
+  
+  // SMTP Configuration (fallback)
   SMTP: {
     HOST: process.env.SMTP_HOST || 'smtp.gmail.com',
     PORT: parseInt(process.env.SMTP_PORT) || 587,
