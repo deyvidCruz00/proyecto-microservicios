@@ -41,6 +41,22 @@ def init_database():
         engine = None
         SessionLocal = None
 
+
+def create_tables():
+    """Create database tables"""
+    from app.models.notification import Base as NotificationBase
+    
+    if engine is None:
+        print("⚠️ Cannot create tables: database engine not initialized")
+        return
+    
+    try:
+        NotificationBase.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        print(f"❌ Error creating tables: {e}")
+
+
 def get_database():
     """Get database session"""
     if SessionLocal is None:

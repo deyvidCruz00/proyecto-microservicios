@@ -76,6 +76,10 @@ async def startup_event():
     # Inicializar base de datos
     init_database()
     
+    # Crear tablas en la base de datos
+    from app.database import create_tables
+    create_tables()
+    
     # Inicializar Kafka solo si está habilitado
     start_kafka_consumer()
 

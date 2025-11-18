@@ -1,61 +1,110 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 from typing import List
-from app.schemas.notification import NotificationResponse, NotificationCreate
+from app.schemas.notification import (
+    NotificationResponse, 
+    NotificationCreate,
+    NotificationListResponse,
+    NotificationMarkReadRequest,
+    NotificationDeleteRequest
+)
 from app.services.notification_service import NotificationService
+from app.database import get_database
 
-router = APIRouter(prefix="/api/v1/notifications", tags=["notifications"])
+router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 # Instancia del servicio
 notification_service = NotificationService()
 
 
-@router.get("", response_model=List[NotificationResponse])
+@router.get("", response_model=NotificationListResponse)
 async def get_notifications(
-    user_id: str = Query(..., description="ID del usuario"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100)
+    userid: str = Query(..., description="ID del usuario"),
+    db: Session = Depends(get_database)
 ):
-    """Obtiene las notificaciones de un usuario con paginación"""
-    return notification_service.get_user_notifications(user_id, skip, limit)
+    """
+    Obtiene las notificaciones del usuario
+    
+    Nota: La autenticación debe ser manejada por el backend Java.
+    Este endpoint confía en que el backend ya validó al usuario.
+    """
+    try:
+        notifications = notification_service.get_user_notifications(userid, db)
+        
+        # Convertir las notificaciones al formato requerido
+        notifications_list = [
+            {
+                "notificationid": n.notificationid,
+                "title": n.title,
+                "description": n.description,
+                "type": n.type.value if hasattr(n.type, 'value') else n.type,
+                "date": n.date.isoformat(),
+                "wasRead": n.was_read
+            }
+            for n in notifications
+        ]
+        
+        return NotificationListResponse(
+            success=True,
+            message="Notificaciones obtenidas exitosamente",
+            body={"notifications": notifications_list}
+        )
+    except Exception as e:
+        return NotificationListResponse(
+            success=False,
+            message=f"Error al obtener notificaciones: {str(e)}",
+            body={"notifications": []}
+        )
 
 
-@router.get("/unread/count")
-async def get_unread_count(user_id: str = Query(..., description="ID del usuario")):
-    """Obtiene el conteo de notificaciones no leídas"""
+@router.patch("/read")
+async def mark_notification_as_read(
+    request: NotificationMarkReadRequest,
+    db: Session = Depends(get_database)
+):
+    """
+    Marca una notificación como leída
+    
+    Nota: La autenticación debe ser manejada por el backend Java.
+    Este endpoint confía en que el backend ya validó al usuario.
+    """
+    result = notification_service.mark_as_read(request.userid, request.notificationid, db)
+    
+    if not result:
+        return {
+            "success": False,
+            "message": "Notificación no encontrada"
+        }
+    
     return {
-        "user_id": user_id,
-        "unread_count": notification_service.get_unread_count(user_id)
+        "success": True,
+        "message": "Notificación marcada como leída"
     }
 
 
-@router.post("", response_model=NotificationResponse)
-async def create_notification(notification: NotificationCreate):
-    """Crea una nueva notificación"""
-    return notification_service.create_notification(notification)
-
-
-@router.put("/{notification_id}/read", response_model=NotificationResponse)
-async def mark_as_read(notification_id: str):
-    """Marca una notificación como leída"""
-    result = notification_service.mark_as_read(notification_id)
+@router.delete("")
+async def delete_notification(
+    request: NotificationDeleteRequest,
+    db: Session = Depends(get_database)
+):
+    """
+    Elimina una notificación
+    
+    Nota: La autenticación debe ser manejada por el backend Java.
+    Este endpoint confía en que el backend ya validó al usuario.
+    """
+    result = notification_service.delete_notification(request.userid, request.notificationid, db)
+    
     if not result:
-        raise HTTPException(status_code=404, detail="Notificación no encontrada")
-    return result
-
-
-@router.put("/user/{user_id}/read-all")
-async def mark_all_as_read(user_id: str):
-    """Marca todas las notificaciones de un usuario como leídas"""
-    count = notification_service.mark_all_as_read(user_id)
-    return {"user_id": user_id, "marked_as_read": count}
-
-
-@router.delete("/{notification_id}")
-async def delete_notification(notification_id: str):
-    """Elimina una notificación"""
-    if not notification_service.delete_notification(notification_id):
-        raise HTTPException(status_code=404, detail="Notificación no encontrada")
-    return {"message": "Notificación eliminada"}
+        return {
+            "success": False,
+            "message": "Notificación no encontrada"
+        }
+    
+    return {
+        "success": True,
+        "message": "Notificación eliminada exitosamente"
+    }
 
 
 @router.get("/health", tags=["health"])
