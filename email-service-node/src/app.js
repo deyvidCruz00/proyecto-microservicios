@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const config = require('./config');
 const emailRoutes = require('./routes/emails');
 const kafkaService = require('./services/kafkaService');
+const database = require('./database');
 
 const app = express();
 
@@ -52,7 +53,8 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: config.SERVICE_NAME,
-    version: '1.0.0'
+    version: '1.0.0',
+    database: database.isDatabaseAvailable() ? 'connected' : 'disconnected'
   });
 });
 
@@ -81,6 +83,12 @@ async function initializeServices() {
   try {
     console.log('🚀 Iniciando servicios...');
     
+    // Inicializar base de datos
+    database.initDatabase();
+    
+    // Crear tablas si no existen
+    await database.createTables();
+    
     // Inicializar Kafka (maneja internamente si está habilitado o no)
     await kafkaService.initialize();
     
@@ -95,12 +103,14 @@ async function initializeServices() {
 process.on('SIGTERM', async () => {
   console.log('🔄 Recibido SIGTERM, cerrando servidor...');
   await kafkaService.disconnect();
+  await database.closeDatabase();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('🔄 Recibido SIGINT, cerrando servidor...');
   await kafkaService.disconnect();
+  await database.closeDatabase();
   process.exit(0);
 });
 

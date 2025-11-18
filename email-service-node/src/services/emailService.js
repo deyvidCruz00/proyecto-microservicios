@@ -2,6 +2,7 @@ const nodemailer = require('nodemailer');
 const sgMail = require('@sendgrid/mail');
 const { v4: uuidv4 } = require('uuid');
 const config = require('../config');
+const emailLogService = require('./emailLogService');
 
 class EmailService {
   constructor() {
@@ -112,6 +113,14 @@ class EmailService {
       this.emailLogs.unshift(emailLog);
       this.stats.total_sent++;
       
+      // Registrar en base de datos
+      await emailLogService.logEmail({
+        to: to_email,
+        subject,
+        status: 'success',
+        provider: config.EMAIL_PROVIDER
+      });
+      
       console.log(`✅ Email enviado exitosamente: ${emailId}`);
       console.log(`📨 Message ID: ${info.messageId}`);
       
@@ -139,6 +148,15 @@ class EmailService {
 
       this.emailLogs.unshift(emailLog);
       this.stats.total_failed++;
+      
+      // Registrar en base de datos
+      await emailLogService.logEmail({
+        to: to_email,
+        subject,
+        status: 'failed',
+        provider: config.EMAIL_PROVIDER,
+        errorMessage: error.message
+      });
       
       throw error;
     }
@@ -197,8 +215,16 @@ class EmailService {
     return this.emailLogs.slice(0, limit);
   }
 
+  async getEmailLogsFromDB(options = {}) {
+    return await emailLogService.getEmailLogs(options);
+  }
+
   getStats() {
     return this.stats;
+  }
+
+  async getStatsFromDB() {
+    return await emailLogService.getEmailStats();
   }
 
   getHealth() {

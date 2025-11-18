@@ -45,14 +45,15 @@ router.get('/health', (req, res) => {
   res.json(emailService.getHealth());
 });
 
-// GET /api/v1/emails/logs - Ver logs de emails
+// GET /api/v1/emails/logs - Ver logs de emails (desde memoria)
 router.get('/logs', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const logs = emailService.getEmailLogs(limit);
     res.json({
       logs,
-      total: logs.length
+      total: logs.length,
+      source: 'memory'
     });
   } catch (error) {
     console.error('Error en /logs:', error);
@@ -63,15 +64,50 @@ router.get('/logs', (req, res) => {
   }
 });
 
-// GET /api/v1/emails/stats - Estadísticas
+// GET /api/v1/emails/logs/db - Ver logs de emails desde base de datos
+router.get('/logs/db', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    const status = req.query.status || null;
+    
+    const result = await emailService.getEmailLogsFromDB({ limit, offset, status });
+    res.json(result);
+  } catch (error) {
+    console.error('Error en /logs/db:', error);
+    res.status(500).json({
+      error: 'Error obteniendo logs de base de datos',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/v1/emails/stats - Estadísticas (desde memoria)
 router.get('/stats', (req, res) => {
   try {
     const stats = emailService.getStats();
-    res.json(stats);
+    res.json({
+      ...stats,
+      source: 'memory'
+    });
   } catch (error) {
     console.error('Error en /stats:', error);
     res.status(500).json({
       error: 'Error obteniendo estadísticas',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/v1/emails/stats/db - Estadísticas desde base de datos
+router.get('/stats/db', async (req, res) => {
+  try {
+    const stats = await emailService.getStatsFromDB();
+    res.json(stats || { error: 'Base de datos no disponible' });
+  } catch (error) {
+    console.error('Error en /stats/db:', error);
+    res.status(500).json({
+      error: 'Error obteniendo estadísticas de base de datos',
       message: error.message
     });
   }
