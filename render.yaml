@@ -67,7 +67,7 @@ services:
     name: notifications-service
     env: python
     runtime: python
-    pythonVersion: "3.11"
+    pythonVersion: "3.13.4"
     buildCommand: cd notifications-service && pip install --upgrade pip && pip install -r requirements.txt
     startCommand: cd notifications-service && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     plan: free
@@ -83,7 +83,7 @@ services:
       - key: ENVIRONMENT
         value: production
       
-      # Database Configuration
+      # Database Configuration (External Database URL)
       - key: DATABASE_URL
         value: postgresql://administrator:H6Zwj6TSlL8htqwUD4hlvelwF53eSWFB@dpg-d4atribipnbc73ai9360-a.oregon-postgres.render.com/partyst
       
